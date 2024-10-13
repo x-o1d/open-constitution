@@ -3,8 +3,10 @@
   import type { _Line } from "$lib/types/types";
   import { onMount } from "svelte";
   import DoneIcon from "../../assets/done.svg";
+  import CancelIcon from "../../assets/cancel.svg";
 
-  export let line: _Line;
+  export let index: number;
+  export let content: string;
 
   let editable: any;
 
@@ -12,26 +14,43 @@
     const response = await fetch("/api", {
       method: "POST",
       body: JSON.stringify({
-        line: line.content,
+        index,
+        line: content,
       }),
     });
     const data = await response.json();
-    getEvent("update-lines").trigger();
-    line.content = "";
+    if (data.success) {
+      getEvent("update-lines").trigger();
+    }
+  };
+
+  const cancel = async () => {};
+
+  const textAreaAdjust = () => {
+    editable.style.height = "1px";
+    editable.style.height = 20 + editable.scrollHeight + "px";
   };
 
   onMount(() => {
+    textAreaAdjust();
     editable.focus();
   });
 </script>
 
 <div class="editor">
-  <div class="index">{line.index}.</div>
-  <textarea bind:value={line.content} bind:this={editable} />
+  <div class="index">{index + 1}.</div>
+  <textarea
+    on:keyup={textAreaAdjust}
+    bind:value={content}
+    bind:this={editable}
+  />
 </div>
 <div class="editor-tools">
   <button on:click={addLine}>
-    <img src={DoneIcon} alt="done" height="30" width="30" />
+    <img src={DoneIcon} alt="done" height="25" width="25" />
+  </button>
+  <button on:click={addLine}>
+    <img src={CancelIcon} alt="done" height="25" width="25" />
   </button>
 </div>
 
@@ -41,34 +60,32 @@
     flex-direction: row;
     justify-content: flex-start;
 
-    width: calc(100% - 10px);
+    width: 100%;
 
-    padding-left: 3px;
-    padding-right: 3px;
     margin-top: 10px;
-    margin-right: 10px;
 
-    border: 1px solid #cccccc;
     border-radius: 3px;
+    background-color: var(--background-color);
+
+    padding: 3px 0 5px 0;
+    font-size: 14px;
   }
 
   .index {
-    margin-top: 7px;
     margin-right: 5px;
-    font-size: 12px;
+    margin-left: 3px;
   }
 
   textarea {
     width: 100%;
     border: none;
     border-radius: 3px;
-    padding: 5px;
-    margin-left: -5px;
+    padding: 0;
+    margin: 0;
 
-    font-size: 1rem;
-    font-family: "Abhaya Libre", serif;
-    font-weight: 400;
-    font-style: normal;
+    font-size: 14px;
+    font-family: inherit;
+    background-color: var(--background-color);
   }
 
   textarea:focus {
@@ -82,30 +99,17 @@
     justify-content: flex-end;
 
     margin-bottom: 5px;
+
+    width: 100%;
   }
 
   button {
     display: flex;
     flex-direction: row;
-    background-color: white;
+    background-color: var(--background-color);
     border: none;
-    margin-left: 5px;
-  }
-  /* input {
-    width: calc(100% - 22px);
-    height: 2rem;
-    border: 1px solid black;
-    border-radius: 5px;
-
-    font-size: 1rem;
-    font-weight: bold;
+    margin-left: 2px;
+    margin-top: 2px;
     padding: 10px;
   }
-
-  button {
-    position: absolute;
-    top: 0;
-    right: 0;
-    height: 100%;
-  } */
 </style>

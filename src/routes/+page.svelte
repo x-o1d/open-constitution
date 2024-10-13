@@ -1,26 +1,29 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import Input from "$lib/components/input.svelte";
   import Line from "$lib/components/line.svelte";
   import { getEvent } from "$lib/service/events.js";
+  import Input from "$lib/components/input.svelte";
 
-  let showOptions = false;
   let showEditor = false;
-
-  let line = "type here";
-
-  let lines: { content: string }[] = [];
 
   export let data;
 
-  const addLine = async () => {
-    showEditor = !showEditor;
-  };
+  if (!data.lines.length) {
+    data.lines.push({
+      index: "-",
+      content: "--------------",
+    });
+  }
 
-  onMount(async () => {
-    // const response = await fetch("/api");
-    // const data = await response.json();
-    // console.log(data);
+  console.log(data);
+
+  getEvent("insert-line").subscribe(({ index }) => {
+    data.lines.splice(index + 1, 0, {
+      content: "",
+      _editMode: true,
+      _localOnly: true,
+    });
+    data = data;
   });
 
   getEvent("update-lines").subscribe(async () => {
@@ -28,33 +31,44 @@
     const newData = await response.json();
     data = newData;
   });
-
-  getEvent("update-index").subscribe((start) => {
-    for (let i = start; i < data.lines.length; i++) {
-      data.lines[i].index = i + 2;
-    }
-    data = data;
-  });
 </script>
 
 <div class="container">
   <div class="header">
     <p>ජනතා යෝජිත ආණ්ඩුක්‍රම ව්‍යවස්ථාව.</p>
   </div>
-  {#each data.lines as line}
-    <Line {line} />
+  {#each data.lines as line, index}
+    {#if line._editMode}
+      <Input content={line.content} {index} />
+    {:else}
+      <Line {line} {index} />
+    {/if}
   {/each}
 </div>
 
 <style>
   :global(body) {
-    background-color: #bebebe;
+    --background-color: #f5f5f5;
+    --background-color-2: #e8e8e8;
     padding: 0;
     margin: 0;
 
-    font-family: "Abhaya Libre", serif;
+    font-family:
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      Oxygen,
+      Ubuntu,
+      Cantarell,
+      "Open Sans",
+      "Helvetica Neue",
+      sans-serif;
     font-weight: 400;
     font-style: normal;
+
+    background-color: var(--background-color);
   }
 
   .container {
@@ -69,7 +83,7 @@
     height: 100vh;
 
     background-color: white;
-    padding: 10px;
+    padding: 0 6px 0 6px;
   }
 
   .header {
@@ -78,32 +92,8 @@
     justify-content: center;
     align-items: center;
 
-    font-size: 1.3rem;
+    font-size: 1rem;
     font-weight: 400;
     margin-bottom: 30px;
-  }
-
-  button {
-    width: 100%;
-
-    padding: 10px;
-
-    border: 1px solid black;
-    border-radius: 5px;
-
-    font-size: 1rem;
-    font-weight: bold;
-
-    margin-bottom: 5px;
-  }
-
-  .add-content {
-    background-color: gray;
-  }
-  .add-line {
-    background-color: rgb(88, 119, 124);
-  }
-  .add-section {
-    background-color: #587c68;
   }
 </style>

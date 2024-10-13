@@ -6,78 +6,138 @@
   import Input from "./input.svelte";
 
   export let line: _Line;
-  let newLine: _Line;
+  export let index: number;
+  export let showTools = false;
 
-  let showAddOptions = false;
+  let showOption: number | undefined;
   let showAddLine = false;
+
+  interface _toolsConfig {
+    icon: string;
+    options: {
+      option: string;
+      callback: () => void;
+    }[];
+  }
 
   const deleteLine = async () => {
     const response = await fetch("/api", {
       method: "DELETE",
       body: JSON.stringify({
-        _id: line._id,
+        id: line.id,
       }),
     });
     const data = await response.json();
     if (data.success) {
       getEvent("update-lines").trigger();
+      getEvent("close-tools").trigger();
     }
   };
 
-  const showLineOptions = () => {
-    showAddOptions = !showAddOptions;
+  const showLineEditor = () => {
+    // getEvent("update-index").trigger(line.index);
+    // showAddLine = true;
   };
 
-  const showLineEditor = () => {
-    newLine = {
-      index: line.index! + 1,
-      content: "",
+  const insertLine = () => {
+    getEvent("insert-line").trigger({ index });
+    getEvent("close-tools").trigger();
+  };
+
+  getEvent("close-tools").subscribe(() => {
+    showAddLine = false;
+    showOption = undefined;
+  });
+
+  const toolsConfig: _toolsConfig[] = [
+    {
+      icon: DeleteIcon,
+      options: [{ option: "මෙම වගන්තිය ඉවත් කරන්න.", callback: deleteLine }],
+    },
+    {
+      icon: AddIcon,
+      options: [
+        { option: "වගන්තියක් ඇතුල් කරන්න.", callback: insertLine },
+        { option: "උප වගන්තියක් ඇතුල් කරන්න", callback: showLineEditor },
+      ],
+    },
+  ];
+
+  const showHide = (node: any, duration: number) => {
+    const style = getComputedStyle(node);
+    const height = parseInt(style.height.split("px")[0]);
+
+    return {
+      duration: 100,
+      css: (t: number) => {
+        const e = t;
+        return `
+					max-height: ${height * e}px;`;
+      },
     };
-    getEvent("update-index").trigger(line.index);
-    showAddOptions = false;
-    showAddLine = true;
   };
 </script>
 
-{#if showAddLine}
-  <Input line={newLine} />
-{:else}
-  <div class="toolbar">
-    <button on:click={deleteLine}>
-      <img src={DeleteIcon} alt="delete" height="30" width="30" />
-    </button>
-    <button on:click={showLineOptions}>
-      <img src={AddIcon} alt="delete" height="30" width="30" />
-    </button>
-  </div>
-{/if}
-{#if showAddOptions}
-  <div class="toolbar-options">
-    <div class="option">
-      <button on:click={showLineEditor}>වගන්තියක් ඇතුල් කරන්න</button>
+{#if showTools}
+  <div class="tools" in:showHide={200} out:showHide={200}>
+    <div class="toolbar">
+      {#each toolsConfig as config, index}
+        <button
+          on:click={() => {
+            if (showOption === index) {
+              showOption = undefined;
+            } else {
+              showOption = index;
+            }
+          }}
+          class:selected-button={index === showOption}
+        >
+          <img src={config.icon} alt="delete" height="25" width="25" />
+        </button>
+      {/each}
     </div>
-    <div class="option">
-      <button on:click={showLineEditor}>උප වගන්තියක් ඇතුල් කරන්න</button>
-    </div>
+    {#each toolsConfig as config, index}
+      {#if showOption === index}
+        <div class="toolbar-options" in:showHide={200} out:showHide={200}>
+          {#each config.options as sub}
+            <div class="option">
+              <button on:click={sub.callback}>{sub.option}</button>
+            </div>
+          {/each}
+        </div>
+      {/if}
+    {/each}
   </div>
 {/if}
 
 <style>
+  .tools {
+    /* max-height: 0; */
+    overflow: hidden;
+    transition: max-height 200ms ease-in-out;
+  }
+
   .toolbar {
     display: flex;
     flex-direction: row;
     justify-content: flex-end;
+
+    border-top: 4px solid var(--background-color);
   }
 
   button {
     display: flex;
     flex-direction: row;
-    background-color: white;
+    background-color: var(--background-color);
     border: none;
-    margin-left: 5px;
-    padding: 5px;
+    margin-left: 2px;
+    margin-top: 2px;
+    padding: 10px;
   }
 
+  .selected-button {
+    background-color: var(--background-color-2);
+  }
   .toolbar-options {
     display: flex;
     flex-direction: column;
@@ -92,5 +152,8 @@
   .option > button {
     padding-top: 10px;
     padding-bottom: 10px;
+
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
   }
 </style>

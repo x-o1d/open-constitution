@@ -1,5 +1,5 @@
 export interface _Line {
-  _id?: string;
+  id?: string;
   content: string;
   index?: number;
 }

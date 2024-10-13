@@ -1,21 +1,35 @@
 <script lang="ts">
+  import { getEvent } from "$lib/service/events";
   import type { _Line } from "$lib/types/types";
   import Tools from "./tools.svelte";
 
   export let line: _Line;
-  let showTools = false;
+  export let index: number;
 
-  const showToolbar = () => (showTools = !showTools);
+  let selected = false;
+
+  const showToolbar = () => {
+    selected = !selected;
+    getEvent("select-line").trigger(line.id);
+  };
+
+  getEvent("select-line").subscribe((id) => {
+    if (id !== line.id) {
+      selected = false;
+    }
+  });
+
+  getEvent("close-tools").subscribe(() => {
+    selected = false;
+  });
 </script>
 
 <div class="line">
   <button class="content" on:click={showToolbar}>
-    <div class="index">{line.index}.</div>
+    <div class="index">{index + 1}.</div>
     {line.content}
   </button>
-  {#if showTools}
-    <Tools {line} />
-  {/if}
+  <Tools {line} {index} showTools={selected} />
 </div>
 
 <style>
@@ -34,10 +48,20 @@
     flex-direction: row;
     background-color: white;
     border: none;
+
+    font-family: inherit;
+
+    text-align: left;
+  }
+
+  .content {
+    padding: 5px 0 5px 0;
+    font-size: 14px;
   }
 
   .index {
+    margin-top: 1px;
     margin-right: 5px;
-    font-size: 12px;
+    margin-left: 3px;
   }
 </style>

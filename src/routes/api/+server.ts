@@ -1,74 +1,67 @@
-import { getDb } from "$lib/service/mongo.js";
+import { getCollection, getDb, getDocument } from "$lib/service/mongo.js";
 import { error } from "@sveltejs/kit";
-import { ObjectId } from "mongodb";
+import { ObjectId, UUID } from "mongodb";
 
 export async function GET({ url }) {
-
-  const db = await getDb();
-  if (!db) {
-    error(500, "internal server error");
+  try {
+    let document = await getDocument();
+    return new Response(JSON.stringify({ lines: document.lines}));
+  } catch(e) {
+    console.log(e);
+    error(500, 'internal server error');
   }
+}
 
-  const collection = db.collection("lines");
-
-  const lines = await collection.find({}).toArray();
-
-  lines.forEach((e, i) => e.index = i+1);
-
-  if (lines.length) {
-    return new Response(JSON.stringify({ lines: lines}));
-  } else {
-    return new Response(JSON.stringify({ lines: []}));
-  }
-  
+export interface PostRequestData {
+  parentIndex: number;
+  line: string;
 }
 
 export async function POST({request}) {
 
-  const data = await request.json();
+  const collection = await getCollection();
 
-  const line = data.line;
+  const data: PostRequestData = await request.json();
 
-  const db = await getDb();
-  if (!db) {
-    error(500, "internal server error");
-  }
-  
-  const collection = db.collection("lines");
-
-  const insertResult = collection.insertOne( {
-    content: line
+  const updateResult = await collection.updateOne({}, {
+    $push: {
+      lines: {
+        $each: [{
+          id: (new UUID()).toString(),
+          content: data.line,
+          lines: []
+        }],
+        $position: data.index
+      }
+    }
   })
 
   return new Response(JSON.stringify({
-      status: insertResult,
+      status: updateResult,
       success: true
   }));
 }
 
-export interface RequestData {
-  _id: string;
+export interface DeleteRequestData {
+  id: string;
 }
 
 export async function DELETE({ request }) {
-  const data: RequestData = await request.json();
+  const collection = await getCollection();
 
-  const db = await getDb();
-  if (!db) {
-    error(500, "internal server error");
-  }
+  const data: DeleteRequestData = await request.json();
 
-  const collection = db.collection("lines");
-
-  console.log(data._id);
-
-  const deleteResult =await collection.deleteOne({
-    _id: new ObjectId(data._id)
+  
+  const updateResult = await collection.updateOne({}, {
+    $pull: {
+      lines: {
+        'id': data.id
+      }
+    }
   })
 
-  console.log(deleteResult);
-
   return new Response(JSON.stringify({
-    success: true
+      status: updateResult,
+      success: true
   }));
 }
