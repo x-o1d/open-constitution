@@ -1,31 +1,48 @@
 <script lang="ts">
-  import { onMount } from "svelte";
   import Line from "$lib/components/line.svelte";
   import { getEvent } from "$lib/service/events.js";
   import Input from "$lib/components/input.svelte";
+  import type { _Document, _FlatDocument, _Line } from "$lib/types/types";
+  import { flatten } from "$lib/helpers/document";
+  import { getLine, getParentLine } from "$lib/helpers/line";
 
-  let showEditor = false;
+  export let data: _Document = {
+    lines: [],
+  };
 
-  export let data;
+  let flatDocument: _FlatDocument;
+  $: flatDocument = flatten(data);
 
-  if (!data.lines.length) {
-    data.lines.push({
-      index: "-",
-      content: "--------------",
-    });
-  }
-
-  console.log(data);
-
-  getEvent("insert-line").subscribe(({ index }) => {
-    data.lines.splice(index + 1, 0, {
+  // data modifiers
+  getEvent("edit-line").subscribe((index) => {
+    data.lines[index]._editMode = true;
+    data = data;
+  });
+  getEvent("insert-line").subscribe((indexArray: number[]) => {
+    const { line, index } = getParentLine(indexArray, data);
+    line.lines.splice(index + 1, 0, {
       content: "",
+      lines: [],
       _editMode: true,
-      _localOnly: true,
+      _newInsert: true,
     });
     data = data;
   });
-
+  getEvent("insert-sub-line").subscribe((indexArray: number[]) => {
+    const { line } = getLine(indexArray, data);
+    line.lines.push({
+      content: "",
+      lines: [],
+      _editMode: true,
+      _newInsert: true,
+    });
+    data = data;
+  });
+  getEvent("cancel-insert").subscribe((indexArray: number[]) => {
+    const { line, index } = getParentLine(indexArray, data);
+    line.lines.splice(index, 1);
+    data = data;
+  });
   getEvent("update-lines").subscribe(async () => {
     const response = await fetch("/api");
     const newData = await response.json();
@@ -37,11 +54,11 @@
   <div class="header">
     <p>ජනතා යෝජිත ආණ්ඩුක්‍රම ව්‍යවස්ථාව.</p>
   </div>
-  {#each data.lines as line, index}
+  {#each flatDocument as line, index}
     {#if line._editMode}
-      <Input content={line.content} {index} />
+      <Input {line} />
     {:else}
-      <Line {line} {index} />
+      <Line {line} />
     {/if}
   {/each}
 </div>

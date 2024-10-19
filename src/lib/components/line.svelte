@@ -1,10 +1,10 @@
 <script lang="ts">
+  import { toDisplayIndex } from "$lib/helpers/line";
   import { getEvent } from "$lib/service/events";
-  import type { _Line } from "$lib/types/types";
+  import type { _FDLine } from "$lib/types/types";
   import Tools from "./tools.svelte";
 
-  export let line: _Line;
-  export let index: number;
+  export let line: _FDLine;
 
   let selected = false;
 
@@ -26,10 +26,10 @@
 
 <div class="line">
   <button class="content" on:click={showToolbar}>
-    <div class="index">{index + 1}.</div>
+    <div class="index">{toDisplayIndex(line.index)}.</div>
     {line.content}
   </button>
-  <Tools {line} {index} showTools={selected} />
+  <Tools {line} showTools={selected} />
 </div>
 
 <style>

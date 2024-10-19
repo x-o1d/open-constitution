@@ -1,12 +1,11 @@
 <script lang="ts">
   import { getEvent } from "$lib/service/events";
-  import type { _Line } from "$lib/types/types";
+  import type { _FDLine } from "$lib/types/types";
   import DeleteIcon from "../../assets/delete.svg";
   import AddIcon from "../../assets/add.svg";
-  import Input from "./input.svelte";
+  import EditIcon from "../../assets/edit.svg";
 
-  export let line: _Line;
-  export let index: number;
+  export let line: _FDLine;
   export let showTools = false;
 
   let showOption: number | undefined;
@@ -19,6 +18,10 @@
       callback: () => void;
     }[];
   }
+
+  const editLine = async () => {
+    getEvent("edit-line").trigger(line.index);
+  };
 
   const deleteLine = async () => {
     const response = await fetch("/api", {
@@ -34,13 +37,13 @@
     }
   };
 
-  const showLineEditor = () => {
-    // getEvent("update-index").trigger(line.index);
-    // showAddLine = true;
+  const insertLine = () => {
+    getEvent("insert-line").trigger(line.index);
+    getEvent("close-tools").trigger();
   };
 
-  const insertLine = () => {
-    getEvent("insert-line").trigger({ index });
+  const insertSubLine = () => {
+    getEvent("insert-sub-line").trigger(line.index);
     getEvent("close-tools").trigger();
   };
 
@@ -51,6 +54,10 @@
 
   const toolsConfig: _toolsConfig[] = [
     {
+      icon: EditIcon,
+      options: [{ option: "මෙම වගන්තිය වෙනස් කරන්න.", callback: editLine }],
+    },
+    {
       icon: DeleteIcon,
       options: [{ option: "මෙම වගන්තිය ඉවත් කරන්න.", callback: deleteLine }],
     },
@@ -58,7 +65,7 @@
       icon: AddIcon,
       options: [
         { option: "වගන්තියක් ඇතුල් කරන්න.", callback: insertLine },
-        { option: "උප වගන්තියක් ඇතුල් කරන්න", callback: showLineEditor },
+        { option: "උප වගන්තියක් ඇතුල් කරන්න", callback: insertSubLine },
       ],
     },
   ];
@@ -72,7 +79,9 @@
       css: (t: number) => {
         const e = t;
         return `
-					max-height: ${height * e}px;`;
+					max-height: ${height * e}px;
+          overflow: 'hidden';
+        `;
       },
     };
   };

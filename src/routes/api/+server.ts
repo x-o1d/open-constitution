@@ -2,6 +2,16 @@ import { getCollection, getDb, getDocument } from "$lib/service/mongo.js";
 import { error } from "@sveltejs/kit";
 import { ObjectId, UUID } from "mongodb";
 
+
+const getDotNotation = (indexArray: number[]): {field: string, position: number} => {
+  const position = indexArray.pop() || -1;
+  const field = indexArray.reduce((a,c) => a ? `${a}.lines.${c}` : `lines.${c}`,'') + '.lines'
+  return {
+    field,
+    position
+  }
+}
+
 export async function GET({ url }) {
   try {
     let document = await getDocument();
@@ -12,8 +22,9 @@ export async function GET({ url }) {
   }
 }
 
+
 export interface PostRequestData {
-  parentIndex: number;
+  index: number[];
   line: string;
 }
 
@@ -23,15 +34,17 @@ export async function POST({request}) {
 
   const data: PostRequestData = await request.json();
 
+  const {field, position} = getDotNotation(data.index);
+  
   const updateResult = await collection.updateOne({}, {
     $push: {
-      lines: {
+      [field]: {
         $each: [{
           id: (new UUID()).toString(),
           content: data.line,
           lines: []
         }],
-        $position: data.index
+        $position: position
       }
     }
   })

@@ -1,12 +1,12 @@
 <script lang="ts">
   import { getEvent } from "$lib/service/events";
-  import type { _Line } from "$lib/types/types";
+  import type { _FDLine } from "$lib/types/types";
   import { onMount } from "svelte";
   import DoneIcon from "../../assets/done.svg";
   import CancelIcon from "../../assets/cancel.svg";
+  import { toDisplayIndex } from "$lib/helpers/line";
 
-  export let index: number;
-  export let content: string;
+  export let line: _FDLine;
 
   let editable: any;
 
@@ -14,8 +14,8 @@
     const response = await fetch("/api", {
       method: "POST",
       body: JSON.stringify({
-        index,
-        line: content,
+        index: line.index,
+        line: line.content,
       }),
     });
     const data = await response.json();
@@ -24,7 +24,9 @@
     }
   };
 
-  const cancel = async () => {};
+  const cancel = async () => {
+    getEvent("cancel-insert").trigger(line.index);
+  };
 
   const textAreaAdjust = () => {
     editable.style.height = "1px";
@@ -35,26 +37,52 @@
     textAreaAdjust();
     editable.focus();
   });
+
+  const showHide = (node: any, duration: number) => {
+    const style = getComputedStyle(node);
+    const height = parseInt(style.height.split("px")[0]);
+
+    return {
+      duration: 100,
+      css: (t: number) => {
+        const e = t;
+        return `
+					max-height: ${height * e}px;
+          overflow: 'hidden';
+        `;
+      },
+    };
+  };
 </script>
 
-<div class="editor">
-  <div class="index">{index + 1}.</div>
-  <textarea
-    on:keyup={textAreaAdjust}
-    bind:value={content}
-    bind:this={editable}
-  />
-</div>
-<div class="editor-tools">
-  <button on:click={addLine}>
-    <img src={DoneIcon} alt="done" height="25" width="25" />
-  </button>
-  <button on:click={addLine}>
-    <img src={CancelIcon} alt="done" height="25" width="25" />
-  </button>
+<div class="input" in:showHide={200} out:showHide={200}>
+  <div class="editor">
+    <div class="index">
+      {toDisplayIndex(line.index)}.
+    </div>
+    <textarea
+      on:keyup={textAreaAdjust}
+      bind:value={line.content}
+      bind:this={editable}
+    />
+  </div>
+  <div class="editor-tools">
+    <button on:click={addLine}>
+      <img src={DoneIcon} alt="done" height="25" width="25" />
+    </button>
+    <button on:click={cancel}>
+      <img src={CancelIcon} alt="done" height="25" width="25" />
+    </button>
+  </div>
 </div>
 
 <style>
+  .input {
+    display: flex;
+    flex-direction: column;
+
+    width: 100%;
+  }
   .editor {
     display: flex;
     flex-direction: row;
